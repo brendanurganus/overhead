@@ -315,6 +315,20 @@ a { color: var(--amber); }
 #homeBtn kbd { font-family: var(--font-data); font-size: 10.5px; color: var(--ink-3); border: 1px solid var(--line-strong); border-radius: 4px; padding: 0 4px; margin-left: 2px; }
 #homeBtn[hidden], #ui.ground #homeBtn, #ui.intro #homeBtn { display: none !important; }
 @media (max-width: 640px) { #homeBtn { bottom: auto; top: calc(var(--top-h, 64px) + 8px); } #homeBtn kbd { display: none; } }
+/* satellite list: compact enough to fit without scrolling on laptop screens */
+#filters { padding: 10px 12px; gap: 8px; scrollbar-width: none; }
+#filters::-webkit-scrollbar { display: none; }
+#filters .fbody { gap: 8px; }
+#filters .cats { gap: 0; }
+#filters .cat { padding: 3px 6px; font-size: 13.5px; }
+#filters .mini button { display: inline-flex; align-items: center; justify-content: center; gap: 4px; }
+#filters .mini button svg { width: 10px; height: 10px; }
+#filters .mini button { white-space: nowrap; min-width: 0; }
+#jumpBtn { flex: 0 0 auto !important; padding: 0 9px; }
+#jumpBtn[aria-expanded="true"] { border-color: var(--amber); color: var(--amber); }
+#famous.panel { position: absolute; z-index: 35; width: 212px; padding: 10px; display: flex; flex-wrap: wrap; gap: 6px; background: var(--panel-solid); border-color: var(--line-strong); }
+#famous[hidden] { display: none !important; }
+#ui.ground #famous, #ui.bare #famous, #ui.intro #famous { display: none !important; }
 #groundPop { position: absolute; z-index: 40; width: 280px; padding: 12px; display: flex; flex-direction: column; gap: 6px; background: var(--panel-solid); }
 #groundPop[hidden] { display: none; }
 #groundPop button { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; padding: 9px 11px; border-radius: 8px; border: 1px solid var(--line); background: rgba(255, 255, 255, 0.02); color: var(--ink); cursor: pointer; }
@@ -406,13 +420,7 @@ a { color: var(--amber); }
       <button type="button" class="xbtn" id="filtersCollapse" aria-expanded="true" aria-controls="filtersBody" aria-label="Collapse the satellite list"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2.5 7.5L6 4l3.5 3.5"/></svg></button></div>
     <div class="fbody" id="filtersBody">
     <div class="cats" id="cats"></div>
-    <div class="mini"><button type="button" id="allOn">Show all</button><button type="button" id="allOff">Hide all</button></div>
-    <div>
-      <div class="eyebrow" style="margin-bottom:6px">Jump to</div>
-      <div class="famous" id="famous"></div>
-    </div>
-    <p class="note">Dim dots are in Earth's shadow. Click any dot for details.</p>
-    <p class="note" id="freshNote"></p>
+    <div class="mini"><button type="button" id="allOn">Show all</button><button type="button" id="allOff">Hide all</button><button type="button" id="jumpBtn" aria-haspopup="menu" aria-expanded="false" aria-controls="famous">Jump to<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2.5 4.5L6 8l3.5-3.5"/></svg></button></div>
     </div>
   </aside>
 
@@ -485,6 +493,7 @@ a { color: var(--amber); }
   </div>
 
   <button type="button" id="homeBtn" hidden title="Back to the main view of Earth (Esc)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="8" cy="8" r="5.6"/><path d="M2.4 8h11.2M8 2.4c-1.8 1.6-2.6 3.5-2.6 5.6s.8 4 2.6 5.6M8 2.4c1.8 1.6 2.6 3.5 2.6 5.6s-.8 4-2.6 5.6"/></svg>Back to main view<kbd>Esc</kbd></button>
+  <div class="famous panel" id="famous" role="menu" hidden aria-label="Jump to"></div>
   <article id="card" hidden aria-live="polite"></article>
 
   <div id="groundPop" class="panel" hidden role="menu" aria-label="Choose where to stand">
@@ -528,6 +537,7 @@ a { color: var(--amber); }
   <div class="sheet">
     <div class="modal-head"><h3>Where this comes from</h3><button type="button" class="xbtn" id="aboutClose" aria-label="Close"><svg viewBox="0 0 12 12" stroke="currentColor" stroke-width="1.6"><path d="M2 2l8 8M10 2l-8 8"/></svg></button></div>
     <p id="aboutLead"></p>
+    <p class="note" style="font-size:13px">Dim dots are in Earth's shadow; click any dot for details. <span id="freshNote"></span></p>
     <dl id="aboutList"></dl>
     <p><button type="button" class="btn" id="replayIntro" style="height:30px">Replay the intro</button></p>
     <p>Brightness values are estimates from each satellite's typical reflectivity, its distance from you and the angle of sunlight. Real satellites can flare brighter or look fainter than predicted. China's Tiangong station has no catalogued brightness, so it uses an estimate based on observed passes (about magnitude −2 at its best).</p>
@@ -1830,6 +1840,18 @@ function initUI(d) {
     const b = document.createElement('button'); b.type = 'button'; b.textContent = l;
     b.addEventListener('click', () => enterLook(body)); $('#famous').appendChild(b);
   }
+  const jump = $('#famous'), jb = $('#jumpBtn');
+  const closeJump = () => { jump.hidden = true; jb.setAttribute('aria-expanded', 'false'); };
+  jb.addEventListener('click', () => {
+    if (!jump.hidden) { closeJump(); return; }
+    const r = jb.getBoundingClientRect();
+    jump.hidden = false; jb.setAttribute('aria-expanded', 'true');
+    jump.style.left = Math.max(16, Math.min(innerWidth - 228, r.left)) + 'px';
+    const below = r.bottom + 6, h = jump.offsetHeight;
+    jump.style.top = (below + h < innerHeight - 8 ? below : Math.max(8, r.top - h - 6)) + 'px';
+  });
+  jump.addEventListener('click', (e) => { if (e.target.closest('button')) closeJump(); });
+  document.addEventListener('pointerdown', (e) => { if (!jump.hidden && !jump.contains(e.target) && !jb.contains(e.target)) closeJump(); });
   $('#sunTag').addEventListener('click', () => enterLook('sun'));
   $('#moonTag').addEventListener('click', () => enterLook('moon'));
   $('#lookExit').addEventListener('click', () => endLook());
