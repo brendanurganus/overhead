@@ -320,12 +320,16 @@ a { color: var(--amber); }
 #filters::-webkit-scrollbar { display: none; }
 #filters .fbody { gap: 8px; }
 #filters .cats { gap: 0; }
-#filters .cat { padding: 3px 6px; font-size: 13.5px; }
+#filters .cat { padding: 2.5px 6px; font-size: 13.5px; }
 #filters .mini button { display: inline-flex; align-items: center; justify-content: center; gap: 4px; }
 #filters .mini button svg { width: 10px; height: 10px; }
 #filters .mini button { white-space: nowrap; min-width: 0; }
 #jumpBtn { flex: 0 0 auto !important; padding: 0 9px; }
 #jumpBtn[aria-expanded="true"] { border-color: var(--amber); color: var(--amber); }
+#jumpInline .eyebrow { font-size: 11px; margin-bottom: 4px; }
+#famousInline { gap: 4px; }
+#famousInline button { padding: 2px 7px; font-size: 11.5px; }
+#jumpInline[hidden] { display: none; }
 #famous.panel { position: absolute; z-index: 35; width: 212px; padding: 10px; display: flex; flex-wrap: wrap; gap: 6px; background: var(--panel-solid); border-color: var(--line-strong); }
 #famous[hidden] { display: none !important; }
 #ui.ground #famous, #ui.bare #famous, #ui.intro #famous { display: none !important; }
@@ -421,6 +425,7 @@ a { color: var(--amber); }
     <div class="fbody" id="filtersBody">
     <div class="cats" id="cats"></div>
     <div class="mini"><button type="button" id="allOn">Show all</button><button type="button" id="allOff">Hide all</button><button type="button" id="jumpBtn" aria-haspopup="menu" aria-expanded="false" aria-controls="famous">Jump to<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2.5 4.5L6 8l3.5-3.5"/></svg></button></div>
+    <div id="jumpInline"><div class="eyebrow">Jump to</div><div class="famous" id="famousInline"></div></div>
     </div>
   </aside>
 
@@ -1832,14 +1837,18 @@ function initUI(d) {
   const famousIds = [[25544, 'ISS'], [48274, 'Tiangong'], [20580, 'Hubble'], [60133, 'GOES-19'], [43013, 'NOAA-20'], [49260, 'Landsat 9']];
   const byNorad = new Map(satsArr.map((s) => [s.norad, s.i]));
   FAMOUS = famousIds.filter(([n]) => byNorad.has(n)).map(([n, l]) => [byNorad.get(n), l]);
-  for (const [i, l] of FAMOUS) {
-    const b = document.createElement('button'); b.type = 'button'; b.textContent = l;
-    b.addEventListener('click', () => select(i, { fly: true })); $('#famous').appendChild(b);
+  for (const box of ['#famous', '#famousInline']) {
+    for (const [i, l] of FAMOUS) {
+      const b = document.createElement('button'); b.type = 'button'; b.textContent = l;
+      b.addEventListener('click', () => select(i, { fly: true })); $(box).appendChild(b);
+    }
+    if (box === '#famousInline') continue; // in the list itself, satellites only: the Sun and Moon have their own labels in the sky
+    for (const [body, l] of [['sun', 'Sun'], ['moon', 'Moon']]) {
+      const b = document.createElement('button'); b.type = 'button'; b.textContent = l;
+      b.addEventListener('click', () => enterLook(body)); $(box).appendChild(b);
+    }
   }
-  for (const [body, l] of [['sun', 'Sun'], ['moon', 'Moon']]) {
-    const b = document.createElement('button'); b.type = 'button'; b.textContent = l;
-    b.addEventListener('click', () => enterLook(body)); $('#famous').appendChild(b);
-  }
+  fitFilters();
   const jump = $('#famous'), jb = $('#jumpBtn');
   const closeJump = () => { jump.hidden = true; jb.setAttribute('aria-expanded', 'false'); };
   jb.addEventListener('click', () => {
@@ -1943,6 +1952,7 @@ function initUI(d) {
     $('#filtersCollapse').setAttribute('aria-expanded', String(!c));
     $('#filtersCollapse').setAttribute('aria-label', c ? 'Expand the satellite list' : 'Collapse the satellite list');
     store.set('filtersCollapsed', c);
+    if (!c) fitFilters();
   };
   $('#filtersCollapse').addEventListener('click', () => setFiltersCollapsed(!$('#filters').classList.contains('collapsed')));
   setFiltersCollapsed(store.get('filtersCollapsed', false));
@@ -2023,6 +2033,14 @@ function onResize() {
   measureBottom(); camera.updateProjectionMatrix(); lastStats = 0; cardDims = null;
 }
 let bottomH = 190, topH = 64;
+// show the Jump to shortcuts right in the satellite list when there's room for them; otherwise keep them behind the Jump to button
+function fitFilters() {
+  const f = $('#filters'), inl = $('#jumpInline'), jb = $('#jumpBtn');
+  if (!f || !inl || f.classList.contains('collapsed')) return;
+  inl.hidden = false; jb.hidden = true;
+  if (f.scrollHeight > f.clientHeight + 1) { inl.hidden = true; jb.hidden = false; }
+  else { $('#famous').hidden = true; jb.setAttribute('aria-expanded', 'false'); }
+}
 function measureBottom() {
   const h = $('#bottom').getBoundingClientRect().height; bottomH = h ? h + 20 : 16; document.documentElement.style.setProperty('--bottom-h', bottomH + 'px');
   topH = $('.topbar').getBoundingClientRect().height; document.documentElement.style.setProperty('--top-h', topH + 'px');
@@ -2031,6 +2049,7 @@ function measureBottom() {
   const shift = vw <= 640 || $('#ui').classList.contains('bare') ? 0 : Math.round((bottomH - topH) * 0.5);
   const xshift = ride && vw > 900 && !$('#card').hidden ? Math.round(($('#card').offsetWidth + 16) / 2) : 0;
   camera.setViewOffset(vw, vh, xshift, shift, vw, vh);
+  fitFilters();
 }
 
 function setLocation(loc, initial) {
