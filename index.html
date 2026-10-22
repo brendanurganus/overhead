@@ -309,6 +309,12 @@ a { color: var(--amber); }
 #lookHint::before { content: ""; position: absolute; top: -7px; left: calc(var(--ax, 130px) - 6px); width: 12px; height: 12px; background: var(--panel-solid); border-left: 1px solid var(--amber); border-top: 1px solid var(--amber); transform: rotate(45deg); }
 #lookHint[hidden] { display: none; }
 @media (max-width: 640px) { #iCats { left: var(--gut-l); right: var(--gut-r); width: auto; top: auto; bottom: 70px; transform: none; } #iCats li { font-size: 12px; padding: 4px 8px; } }
+#homeBtn { position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(var(--bottom-h, 190px) + 8px); z-index: 12; height: 38px; padding: 0 18px 0 14px; border-radius: 999px; border: 1px solid var(--amber); background: rgba(8, 13, 22, 0.88); color: var(--ink); font-size: 13.5px; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 8px 26px rgba(0, 0, 0, 0.45); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+#homeBtn:hover { background: var(--amber-soft); color: var(--amber); }
+#homeBtn svg { width: 15px; height: 15px; }
+#homeBtn kbd { font-family: var(--font-data); font-size: 10.5px; color: var(--ink-3); border: 1px solid var(--line-strong); border-radius: 4px; padding: 0 4px; margin-left: 2px; }
+#homeBtn[hidden], #ui.ground #homeBtn, #ui.intro #homeBtn { display: none !important; }
+@media (max-width: 640px) { #homeBtn { bottom: auto; top: calc(var(--top-h, 64px) + 8px); } #homeBtn kbd { display: none; } }
 #groundPop { position: absolute; z-index: 40; width: 280px; padding: 12px; display: flex; flex-direction: column; gap: 6px; background: var(--panel-solid); }
 #groundPop[hidden] { display: none; }
 #groundPop button { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; padding: 9px 11px; border-radius: 8px; border: 1px solid var(--line); background: rgba(255, 255, 255, 0.02); color: var(--ink); cursor: pointer; }
@@ -478,6 +484,7 @@ a { color: var(--amber); }
     <button type="button" class="btn" id="rideExit" style="height:28px">Exit</button>
   </div>
 
+  <button type="button" id="homeBtn" hidden title="Back to the main view of Earth (Esc)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="8" cy="8" r="5.6"/><path d="M2.4 8h11.2M8 2.4c-1.8 1.6-2.6 3.5-2.6 5.6s.8 4 2.6 5.6M8 2.4c1.8 1.6 2.6 3.5 2.6 5.6s-.8 4-2.6 5.6"/></svg>Back to main view<kbd>Esc</kbd></button>
   <article id="card" hidden aria-live="polite"></article>
 
   <div id="groundPop" class="panel" hidden role="menu" aria-label="Choose where to stand">
@@ -1918,6 +1925,7 @@ function initUI(d) {
   $('#filtersCollapse').addEventListener('click', () => setFiltersCollapsed(!$('#filters').classList.contains('collapsed')));
   setFiltersCollapsed(store.get('filtersCollapsed', false));
   $('#bareBtn').addEventListener('click', () => toggleBare());
+  $('#homeBtn').addEventListener('click', goHome);
 
   // stats collapse
   $('#collapseBtn').addEventListener('click', () => {
@@ -1941,7 +1949,7 @@ function initUI(d) {
   $('#rideExit').addEventListener('click', () => setRide(false));
   document.addEventListener('keydown', (e) => {
     if (e.target.matches('input, textarea')) return;
-    if (e.key === 'Escape') { if (!$('#sky').hidden) closeSky(); else if (!$('#about').hidden) $('#about').hidden = true; else if (gaze) endLook(); else if (ground) { if (replay) stopReplay(); else exitGround(); } else if (ride) setRide(false); else deselect(); }
+    if (e.key === 'Escape') { if (!$('#sky').hidden) closeSky(); else if (!$('#about').hidden) $('#about').hidden = true; else if (gaze) endLook(); else if (ground) { if (replay) stopReplay(); else exitGround(); } else if (ride || sel >= 0) goHome(); }
     if (e.key === '/') { e.preventDefault(); $('#search').focus(); }
     if (e.key === 'h' || e.key === 'H') toggleBare();
   });
@@ -2150,6 +2158,7 @@ function renderCard(i) {
       <div class="card-actions">
         <button type="button" class="btn primary" id="cRide" aria-pressed="${ride}">${ride ? 'Back to orbit view' : 'See it up close'}</button>
         <button type="button" class="btn" id="cFly">Center view</button>
+        <button type="button" class="btn" id="cHome">Main view</button>
       </div>
       <p class="age">Orbit data from ${longDate.format(new Date(s.epoch + 'Z'))} (${epochAge < 1.5 ? 'about a day old' : Math.round(epochAge) + ' days old'}).</p>
     </div>`;
@@ -2157,6 +2166,7 @@ function renderCard(i) {
   $('#cardClose').addEventListener('click', deselect);
   $('#cRide').addEventListener('click', () => setRide(!ride));
   $('#cFly').addEventListener('click', () => { if (ride) setRide(false); flyToSat(sel); });
+  $('#cHome').addEventListener('click', goHome);
   cardDims = null;
   updateCardLive(Date.now());
   setTimeout(() => { if (sel === i) renderPasses(i); }, 30);
@@ -2334,6 +2344,18 @@ function stepTween(now) {
   camera.position.copy(dir.multiplyScalar(dist));
   controls.target.lerpVectors(tween.q0, tween.q1, k);
   if (k >= 1) { const d = tween.done; tween = null; if (d) d(); }
+}
+// back to the opening view: close any satellite, leave close-up or Sun/Moon mode, and fly back to Earth with your location in view
+function homePos() {
+  earth.updateMatrixWorld();
+  return localFromLatLon(LOC.lat - 8, LOC.lon, 1).applyMatrix4(earth.matrixWorld).normalize().multiplyScalar(52000);
+}
+function goHome() {
+  if (gaze) endLook(true);
+  if (ride) { ride = false; $('#ride').hidden = true; rideBlend = null; controls.minDistance = RE + 250; controls.maxDistance = MAXD; controls.zoomSpeed = 0.9; camera.near = 0.05; toggleBare(barePrev); }
+  deselect();
+  flyTo(homePos(), new THREE.Vector3(), 1600);
+  $('#homeBtn').hidden = true;
 }
 function startView() {
   const ms = Date.now();
@@ -3568,12 +3590,25 @@ function initGroundUI(cv) {
 let lastBodies = 0, lastCard = 0, lastClock = 0;
 const clockLocal = new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit', second: '2-digit', timeZoneName: 'short' });
 const clockUtc = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'UTC' });
+const homeBtn = $('#homeBtn'); let lastHomePlace = 0;
 function frame() {
   requestAnimationFrame(frame);
   // the viewer can resize this page without a resize event, so check every frame
   if (stage.clientWidth !== lastSize[0] || stage.clientHeight !== lastSize[1]) onResize();
   const ms = simNow(), now = performance.now();
   const jd = jdOf(ms);
+  const wantHome = (sel >= 0 || ride) && !ground && !gaze;
+  if (homeBtn.hidden === wantHome) homeBtn.hidden = !wantHome;
+  if (wantHome && now - lastHomePlace > 200 && innerWidth > 640) {
+    // keep the button clear of the satellite card: slide it left of the card when they'd overlap
+    lastHomePlace = now;
+    const c = $('#card'), w = homeBtn.offsetWidth || 210; let cx = innerWidth / 2;
+    if (!c.hidden) {
+      const r = c.getBoundingClientRect(), hb = homeBtn.getBoundingClientRect();
+      if (r.left < cx + w / 2 + 12 && r.right > cx - w / 2 - 12 && r.bottom > hb.top - 6) cx = r.left > w + 40 ? r.left - w / 2 - 16 : r.right + w / 2 + 16;
+    }
+    homeBtn.style.left = Math.round(clamp(cx, w / 2 + 16, innerWidth - w / 2 - 16)) + 'px';
+  }
   earth.rotation.y = S.gstime(jd);
   if (Math.abs(ms - lastBodies) > 1000) {
     updateBodies(ms); lastBodies = ms;
