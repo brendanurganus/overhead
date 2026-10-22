@@ -1450,7 +1450,8 @@ function initIntro() {
   document.addEventListener('pointerdown', (e) => { if (!$('#lookHint').hidden && !$('#lookHint').contains(e.target)) $('#lookHint').hidden = true; }, true);
   $('#replayIntro').addEventListener('click', () => { $('#about').hidden = true; if (ground) { exitGround(); setTimeout(() => runIntro(true), 2400); } else runIntro(true); });
   addEventListener('keydown', (e) => { if (INTRO.on && e.key === 'Escape') endIntro(true); });
-  const first = !store.get('introSeen', false) && !reduceMotion && !/[?&]nointro/.test(location.search);
+  // plays on every load; people whose system asks for reduced motion skip it
+  const first = !reduceMotion && !/[?&]nointro/.test(location.search);
   if (first) runIntro(false);
 }
 
