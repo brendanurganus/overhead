@@ -1,0 +1,531 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>OverHead Methodology</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="How OverHead turns public orbit, catalog, imagery and terrain data into a live view of the sky, with every source and license.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<style>
+/* Layout: a flight manual. Sticky contents rail on the left, one reading column, amber readouts for formulas and parameters. Same palette and faces as the globe. */
+:root {
+  color-scheme: dark;
+  --space: #03050a;
+  --panel: #0a101a;
+  --panel-2: #0d1522;
+  --line: rgba(120, 150, 190, 0.16);
+  --line-strong: rgba(140, 170, 210, 0.30);
+  --ink: #dde6f0;
+  --ink-2: #a3b2c5;
+  --ink-3: #6f8197;
+  --amber: #ffb547;
+  --amber-soft: rgba(255, 181, 71, 0.13);
+  --go: #74e3b4;
+  --stop: #ff8a73;
+  --font-display: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --font-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-data: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --gut-l: max(16px, env(safe-area-inset-left, 0px));
+  --gut-r: max(16px, env(safe-area-inset-right, 0px));
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+[hidden]:not([hidden=until-found i]) { display: none !important; }
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body { margin: 0; background: var(--space); color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.65; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--space); }
+a { color: var(--amber); text-decoration-color: rgba(255, 181, 71, 0.4); text-underline-offset: 3px; }
+a:hover { text-decoration-color: var(--amber); }
+:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; border-radius: 2px; }
+img { max-width: 100%; }
+
+.top { border-bottom: 1px solid var(--line); background: var(--panel); }
+.top-in { max-width: 1180px; margin: 0 auto; padding-left: var(--gut-l); padding-right: var(--gut-r); padding-block: 12px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.mark { font-family: var(--font-display); font-weight: 700; font-size: 22px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink); text-decoration: none; }
+.mark span { color: var(--amber); }
+.back { font-family: var(--font-data); font-size: 13px; color: var(--ink-2); text-decoration: none; border: 1px solid var(--line-strong); border-radius: 999px; padding: 6px 14px; }
+.back:hover { color: var(--ink); border-color: var(--amber); }
+
+.wrap { max-width: 1180px; margin: 0 auto; padding-left: var(--gut-l); padding-right: var(--gut-r); padding-block: 40px 72px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 32px; }
+@media (min-width: 980px) { .wrap { grid-template-columns: 220px minmax(0, 1fr); gap: 56px; } }
+
+.toc { font-size: 14px; }
+.toc h2 { font-family: var(--font-data); font-size: 11px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); margin: 0 0 10px; }
+.toc ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.toc a { display: block; color: var(--ink-2); text-decoration: none; padding: 4px 10px; border-left: 2px solid var(--line); }
+.toc a:hover { color: var(--ink); border-left-color: var(--amber); }
+.toc details summary { cursor: pointer; font-family: var(--font-data); font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-2); padding: 10px 14px; border: 1px solid var(--line-strong); border-radius: 8px; list-style: none; }
+.toc details summary::-webkit-details-marker { display: none; }
+.toc details summary::after { content: " +"; color: var(--amber); }
+.toc details[open] summary::after { content: " \2212"; }
+.toc details ol { margin-top: 12px; }
+@media (min-width: 980px) {
+  .toc-inner { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 24px); max-height: calc(100vh - 48px); overflow-y: auto; }
+  .toc details summary { display: none; }
+}
+
+main { min-width: 0; max-width: 760px; }
+.eyebrow { font-family: var(--font-data); font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--amber); margin: 0 0 8px; }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(40px, 7vw, 64px); line-height: 1; letter-spacing: 0.01em; text-transform: uppercase; margin: 0 0 18px; text-wrap: balance; }
+.lede { font-size: 19px; line-height: 1.55; color: var(--ink); max-width: 64ch; margin: 0 0 14px; }
+.byline { font-family: var(--font-data); font-size: 12.5px; color: var(--ink-3); margin: 0 0 36px; }
+
+section { padding-top: 40px; margin-top: 8px; border-top: 1px solid var(--line); scroll-margin-top: calc(env(safe-area-inset-top, 0px) + 16px); }
+h2 { font-family: var(--font-display); font-weight: 600; font-size: 32px; line-height: 1.1; letter-spacing: 0.02em; text-transform: uppercase; margin: 0 0 10px; text-wrap: balance; }
+h3 { font-family: var(--font-display); font-weight: 600; font-size: 21px; letter-spacing: 0.03em; text-transform: uppercase; color: var(--ink); margin: 30px 0 6px; text-wrap: balance; }
+p, li { max-width: 68ch; }
+p { margin: 0 0 14px; color: var(--ink); }
+main ul, main ol.steps { margin: 0 0 16px; padding-left: 20px; }
+main li { margin-bottom: 6px; }
+main li::marker { color: var(--ink-3); }
+strong { font-weight: 600; }
+em { color: var(--ink-2); }
+code, .mono { font-family: var(--font-data); font-size: 0.88em; color: var(--ink); background: var(--panel-2); border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; white-space: nowrap; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 18px; }
+.chip { font-family: var(--font-data); font-size: 12px; color: var(--ink-2); border: 1px solid var(--line-strong); border-radius: 999px; padding: 3px 11px; line-height: 1.5; }
+.chip b { color: var(--amber); font-weight: 500; }
+
+.readout { background: var(--panel); border: 1px solid var(--line-strong); border-radius: 10px; padding: 18px 20px; margin: 18px 0 20px; overflow-x: auto; }
+.readout .eq { font-family: var(--font-data); font-size: 17px; color: var(--amber); white-space: nowrap; margin: 0 0 12px; }
+.readout dl { margin: 0; display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 16px; font-size: 14px; }
+.readout dt { font-family: var(--font-data); color: var(--amber); }
+.readout dd { margin: 0; color: var(--ink-2); min-width: 0; }
+.readout .note { font-size: 14px; color: var(--ink-2); margin: 12px 0 0; }
+
+.tbl { overflow-x: auto; margin: 16px 0 22px; border: 1px solid var(--line); border-radius: 10px; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; line-height: 1.5; }
+th, td { text-align: left; vertical-align: top; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+tr:last-child td { border-bottom: 0; }
+th { font-family: var(--font-data); font-size: 11px; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); background: var(--panel); white-space: nowrap; }
+td { color: var(--ink-2); }
+td:first-child { color: var(--ink); font-weight: 500; }
+td.num, th.num { font-family: var(--font-data); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.flow td:first-child { white-space: nowrap; }
+.lic { font-family: var(--font-data); font-size: 12px; white-space: nowrap; }
+.lic.open { color: var(--go); }
+.lic.none { color: var(--stop); }
+
+.callout { border: 1px solid var(--line-strong); background: var(--amber-soft); border-radius: 10px; padding: 14px 18px; margin: 16px 0 20px; }
+.callout p:last-child { margin-bottom: 0; }
+
+.foot { margin-top: 56px; padding-top: 22px; border-top: 1px solid var(--line); font-size: 14px; color: var(--ink-3); }
+.foot p { color: var(--ink-3); }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="top-in">
+    <a class="mark" href="./">Over<span>Head</span></a>
+    <a class="back" id="backLink" href="./">&larr; Back to the globe</a>
+  </div>
+</header>
+
+<div class="wrap">
+  <nav class="toc" aria-label="Contents">
+    <div class="toc-inner">
+      <details id="tocDetails">
+        <summary>Contents</summary>
+        <h2>Contents</h2>
+        <ol>
+          <li><a href="#flow">Data at a glance</a></li>
+          <li><a href="#positions">Satellite positions</a></li>
+          <li><a href="#catalog">What each satellite is</a></li>
+          <li><a href="#brightness">How bright it looks</a></li>
+          <li><a href="#passes">When you can see one</a></li>
+          <li><a href="#bodies">Sun, Moon and planets</a></li>
+          <li><a href="#earth">The Earth</a></li>
+          <li><a href="#stars">Stars and the Milky Way</a></li>
+          <li><a href="#models">Spacecraft close-ups</a></li>
+          <li><a href="#ground">Look up: the ground views</a></li>
+          <li><a href="#intro">The opening intro</a></li>
+          <li><a href="#privacy">Your location and privacy</a></li>
+          <li><a href="#limits">Accuracy and known limits</a></li>
+          <li><a href="#sources">Sources and licenses</a></li>
+          <li><a href="#software">Software and tools</a></li>
+          <li><a href="#notices">Credits and notices</a></li>
+        </ol>
+      </details>
+    </div>
+  </nav>
+
+  <main>
+    <p class="eyebrow">Methodology</p>
+    <h1>How OverHead works</h1>
+    <p class="lede">OverHead shows every active satellite with a recent public orbit, where it is right now, what it is, and whether you could see it from where you stand. This page explains where each number comes from, what the code does with it, and where the result can be wrong.</p>
+    <p class="byline">Built by Brendan Urganus with Claude &middot; Revised October 22, 2026</p>
+
+    <section id="flow">
+      <h2>Data at a glance</h2>
+      <p>Everything on screen is computed in your browser from a handful of data files. The orbit and cloud files change on a schedule; the rest were prepared once.</p>
+      <div class="tbl">
+        <table class="flow">
+          <thead><tr><th>On screen</th><th>Comes from</th><th>Processing</th><th>Updates</th></tr></thead>
+          <tbody>
+            <tr><td>Satellite positions</td><td>US Space Force orbital elements, published by CelesTrak; SatNOGS</td><td>Freshest element set per satellite, SGP4 orbit model</td><td>About daily</td></tr>
+            <tr><td>Names, owners, launches</td><td>Jonathan McDowell's GCAT</td><td>Matched by catalog number, sorted into 10 categories</td><td>Snapshot, Oct 17, 2026</td></tr>
+            <tr><td>Brightness</td><td>satvisor-data standard magnitudes</td><td>Distance and lighting angle formula</td><td>With orbits</td></tr>
+            <tr><td>Clouds on Earth</td><td>NASA GIBS, VIIRS cameras</td><td>Newest-first mosaic over Blue Marble</td><td>Every 3 hours</td></tr>
+            <tr><td>Night lights, glint</td><td>NASA Black Marble; Natural Earth</td><td>Tone-mapped once</td><td>Fixed</td></tr>
+            <tr><td>Sun, Moon, planets</td><td>Astronomy Engine</td><td>Computed live</td><td>Live</td></tr>
+            <tr><td>Stars</td><td>d3-celestial (Hipparcos-based)</td><td>Rotated to today's sky</td><td>Fixed</td></tr>
+            <tr><td>Yosemite view</td><td>USGS 3DEP, USDA NAIP</td><td>Terrain mesh, color-matched photos</td><td>Fixed</td></tr>
+            <tr><td>Saalbach view</td><td>Austrian DGM via Tilezen, basemap.at</td><td>Terrain mesh, photos turned to winter</td><td>Fixed</td></tr>
+            <tr><td>Close-up models</td><td>NASA 3D Resources; hand-built</td><td>Simplified for the web</td><td>Fixed</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="positions">
+      <h2>Satellite positions</h2>
+      <div class="chips"><span class="chip">Source <b>US Space Force via CelesTrak</b></span><span class="chip">Model <b>SGP4</b></span><span class="chip">Refresh <b>about daily</b></span></div>
+      <p>The US Space Force tracks objects in orbit with radar and telescopes and publishes a compact description of each orbit, called an element set (the familiar two-line element, or TLE, is one format of it). CelesTrak republishes these sorted into mission groups such as space stations, Starlink, navigation and weather. An element set is a snapshot fitted at one moment, its <em>epoch</em>; positions are most accurate near that moment.</p>
+
+      <h3>Where the orbits come from</h3>
+      <ul>
+        <li><strong>CelesTrak mission groups</strong>, read through the <a href="https://github.com/satvisorcom/satvisor-data" target="_blank" rel="noopener">satvisor-data</a> mirror on GitHub, which copies them every 2 to 12 hours. About 40 groups are read.</li>
+        <li><strong>A second Starlink copy</strong> from the <a href="https://github.com/dylanfain/LEOrbit" target="_blank" rel="noopener">LEOrbit</a> project, which is sometimes fresher for the fast-changing Starlink fleet.</li>
+        <li><strong>SatNOGS DB</strong>, the open satellite database run by the Libre Space Foundation. It may only refresh satellites already on the list, because it also tracks satellites that have long since stopped working.</li>
+      </ul>
+      <p>For each satellite, identified by its NORAD catalog number, OverHead keeps whichever element set has the newest epoch. The page footer and the About panel show the middle epoch of the whole set, so you can see how fresh the orbits are.</p>
+
+      <h3>Who is included</h3>
+      <ul>
+        <li>A satellite joins the list only if it appears in one of CelesTrak's mission groups. Names marked as debris, rocket bodies or unidentified objects are skipped.</li>
+        <li>A satellite is dropped when its newest element set is more than <strong>21 days</strong> old, or more than <strong>120 days</strong> old for slow orbits (fewer than 6 laps a day, such as GPS and geostationary satellites, whose orbits change slowly). Showing a satellite in the wrong place is worse than leaving it out.</li>
+        <li>Seven catalog entries for individual station modules are hidden, because they sit at exactly the same point as the ISS or Tiangong entry.</li>
+        <li>A refresh is thrown away, keeping the previous orbits, if fewer than 5,000 satellites arrive or if it would shrink the catalog by more than 30%. This guards against a mirror being down.</li>
+      </ul>
+
+      <h3>From elements to positions</h3>
+      <p>Positions are computed with <strong>SGP4</strong>, the orbit model that these element sets are designed for, using the satellite.js library. SGP4 accounts for Earth's flattening and atmospheric drag in the simplified way the elements expect; using a more elaborate model with the same elements would not make positions more accurate.</p>
+      <p>Running SGP4 for every satellite on every frame would be slow, so each frame recomputes one eighteenth of the satellites and moves the rest along their last computed velocity. Every satellite gets a fresh SGP4 position about every 18 frames, roughly every third of a second. Over that time, the straight-line shortcut drifts by well under a meter. The selected satellite, its orbit line and all pass predictions use SGP4 directly.</p>
+      <p>SGP4 works in an Earth-centered frame tied to the stars. OverHead turns that into positions over the ground using Greenwich sidereal time, Earth's rotation angle. Small corrections such as the wobble of Earth's pole are ignored; they shift positions by tens of meters at most.</p>
+    </section>
+
+    <section id="catalog">
+      <h2>What each satellite is</h2>
+      <div class="chips"><span class="chip">Source <b>GCAT, J. McDowell</b></span><span class="chip">Snapshot <b>Oct 17, 2026</b></span></div>
+      <p>Owner, country, launch date, launch site, rocket, builder and mass come from Jonathan McDowell's <a href="https://planet4589.org/space/gcat/" target="_blank" rel="noopener">General Catalog of Artificial Space Objects</a> (GCAT), matched to the orbit list by catalog number. Satellites launched after the snapshot show only basic details until the catalog is updated.</p>
+
+      <h3>Categories</h3>
+      <p>Every satellite gets one of 10 categories, decided in this order:</p>
+      <ol class="steps">
+        <li><strong>CelesTrak group.</strong> Membership in a mission group decides first. For example, the GPS, GLONASS, Galileo and BeiDou groups mean <em>Navigation</em>; the OneWeb, Kuiper, Qianfan and Guowang groups mean <em>Other broadband</em>.</li>
+        <li><strong>GCAT mission code.</strong> Otherwise the catalog's mission code decides: navigation codes mean Navigation, meteorology means Weather, imaging means Earth imaging, science, astronomy and technology codes mean Science &amp; tech, communications means Communications, and signals intelligence or a defense flag means Military.</li>
+        <li><strong>Name pattern.</strong> For new launches not yet in GCAT, the name decides, for example names starting STARLINK, KUIPER, YAOGAN or GALILEO.</li>
+        <li>Anything left over is <em>Other</em>.</li>
+      </ol>
+      <p>The category bars on the globe and in the intro count the satellites currently loaded, so they change as satellites launch and retire.</p>
+
+      <h3>Descriptions</h3>
+      <p>A few dozen well-known spacecraft, such as the ISS, Hubble, Landsat and the GOES weather satellites, have a short profile written for OverHead from public mission information. Members of big constellations share a description of their fleet. Everything else gets its category's general description.</p>
+
+      <h3>Orbit facts on the card</h3>
+      <p>Height range, lap time and orbit type are worked out from the element set itself. The lap time is 1,440 minutes divided by the laps per day. The orbit's size follows from Kepler's third law with Earth's gravitational constant of 398,600.4418 km&sup3;/s&sup2;, and heights are measured above Earth's 6,378.137 km equatorial radius.</p>
+      <div class="tbl">
+        <table>
+          <thead><tr><th>Orbit type</th><th>Rule used</th></tr></thead>
+          <tbody>
+            <tr><td>Geostationary</td><td>Lap within 25 minutes of 1,436.1 (one sidereal day), nearly circular, tilt under 3&deg;</td></tr>
+            <tr><td>Geosynchronous</td><td>Same lap time, tilted more than 3&deg;</td></tr>
+            <tr><td>Highly elliptical</td><td>Eccentricity above 0.25</td></tr>
+            <tr><td>Medium Earth orbit</td><td>Highest point between 2,000 and 35,000 km</td></tr>
+            <tr><td>High Earth orbit</td><td>Highest point above 35,000 km</td></tr>
+            <tr><td>Low Earth orbit</td><td>Everything else</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>The statistics panel</h3>
+      <p><em>Over the US</em> counts satellites whose ground point falls inside a simplified outline of the lower 48 states and Alaska, plus a box around Hawaii. The outline is hand-drawn from about 60 points, so satellites right at a border can be miscounted. <em>Above your horizon</em> counts satellites above the flat horizon at your location. <em>In sunlight</em> uses the shadow test described below. The height chart groups low orbits into 50 km bands from 150 to 2,000 km.</p>
+    </section>
+
+    <section id="brightness">
+      <h2>How bright it looks</h2>
+      <div class="chips"><span class="chip">Source <b>satvisor-data stdmag</b></span><span class="chip">Coverage <b>about 99% of satellites</b></span></div>
+      <p>Astronomers measure brightness in <em>magnitudes</em>, where smaller is brighter: Venus is about &minus;4, the brightest stars about 0, and the faintest stars you can see from a dark site about 6. Each satellite has a <em>standard magnitude</em>: how bright it would look 1,000 km away with half of its visible side lit.</p>
+
+      <h3>Where standard magnitudes come from</h3>
+      <p>OverHead uses the table compiled by satvisor-data, which takes, in order of preference:</p>
+      <ul>
+        <li><strong>Visual observations</strong> collected by satellite observer Mike McCants, shifted 1.0 magnitude fainter to match the half-lit convention.</li>
+        <li><strong>Radar size</strong>: the radar cross-section in CelesTrak's satellite catalog, turned into a brightness by treating the satellite as a matte ball that reflects 15% of sunlight.</li>
+        <li><strong>Rules of thumb</strong> for constellations missing from both, for example 7.0 for Starlink and OneWeb, 6.5 for Iridium and 5.5 for GPS.</li>
+      </ul>
+      <p>China's Tiangong station has no listed value, so OverHead uses an estimate of 0.3, about 1.3 magnitudes fainter than the ISS, based on how bright its passes are typically reported. The card marks it as an estimate.</p>
+
+      <h3>Brightness during a pass</h3>
+      <div class="readout">
+        <p class="eq">m = m<sub>std</sub> + 5&thinsp;log<sub>10</sub>(d / 1000&nbsp;km) &minus; 2.5&thinsp;log<sub>10</sub>(sin&thinsp;&phi; + (&pi; &minus; &phi;)&thinsp;cos&thinsp;&phi;)</p>
+        <dl>
+          <dt>m<sub>std</sub></dt><dd>standard magnitude at 1,000 km, half lit</dd>
+          <dt>d</dt><dd>distance from you to the satellite, in km</dd>
+          <dt>&phi;</dt><dd>phase angle: the angle at the satellite between the Sun and you. 0&deg; means you see its fully lit side.</dd>
+        </dl>
+        <p class="note">The last term is how a matte ball brightens as more of its lit side faces you, scaled so it adds nothing at &phi; = 90&deg;. Example: the ISS (m<sub>std</sub> &minus;1.0) at 600 km with &phi; = 60&deg; gives &minus;1.0 &minus; 1.11 &minus; 0.70 = <strong>&minus;2.8</strong>, brighter than any star.</p>
+      </div>
+      <div class="tbl">
+        <table>
+          <thead><tr><th class="num">Peak magnitude</th><th>Label shown</th></tr></thead>
+          <tbody>
+            <tr><td class="num">0.5 or brighter</td><td>Very bright</td></tr>
+            <tr><td class="num">0.5 to 2.5</td><td>Easy to see</td></tr>
+            <tr><td class="num">2.5 to 4.0</td><td>Visible</td></tr>
+            <tr><td class="num">fainter than 4.0</td><td>Faint, needs a dark sky</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Real satellites are not matte balls. Solar panels and antennas can flash for a few seconds, many satellites tumble or change orientation, and Starlink satellites are designed to dim themselves. The formula also ignores the atmosphere, which makes anything near the horizon look fainter. Treat the magnitudes as a guide good to a magnitude or so.</p>
+    </section>
+
+    <section id="passes">
+      <h2>When you can see one</h2>
+      <p>A satellite is visible to the naked eye when it is above your horizon, lit by the Sun, and your sky is dark. OverHead tests all three.</p>
+
+      <h3>Sunlight and shadow</h3>
+      <p>A satellite is in Earth's shadow when it is on the night side and closer than Earth's radius (6,378 km) to the line through Earth's center toward the Sun. This treats the shadow as a simple cylinder. It ignores the soft edge of the shadow and the way the atmosphere bends sunlight, so the moment a satellite fades into or out of shadow can be off by a few seconds. Dim dots on the globe are in shadow.</p>
+
+      <h3>Visible pass rules</h3>
+      <div class="tbl">
+        <table>
+          <thead><tr><th>Test</th><th>Rule</th></tr></thead>
+          <tbody>
+            <tr><td>High enough</td><td>At least 10&deg; above the horizon, clear of most trees and buildings</td></tr>
+            <tr><td>Sunlit</td><td>Outside Earth's shadow, as above</td></tr>
+            <tr><td>Dark sky</td><td>Sun at least 6&deg; below your horizon, the end of civil twilight</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Finding passes</h3>
+      <p>For a chosen satellite, OverHead steps through time every 30 seconds for low orbits (every 3 minutes for higher ones) until the satellite rises, then pins down the rise and set times by halving the interval 11 times, to within about 15 milliseconds for a low orbit. It then samples the pass every 4 seconds or 1/360 of its length, whichever is longer, and applies the three tests to find the visible part, its highest point and its peak brightness. The card also notes whether a pass ends by fading into Earth's shadow.</p>
+      <p>The highest elevation a satellite can ever reach from your location, shown on its card, is estimated from its tilt and average height using spherical geometry.</p>
+
+      <h3>The Tonight list</h3>
+      <ul>
+        <li>The window runs from the end of civil twilight tonight (or now, if it is already dark) to the start of morning twilight.</li>
+        <li>Candidates are low-orbit satellites with a standard magnitude of 6 or brighter, plus the ISS and Tiangong.</li>
+        <li>Passes are kept if their peak is magnitude 4.0 or brighter, and up to 40 are listed in time order.</li>
+      </ul>
+
+      <h3>In the ground views</h3>
+      <p>In Look up, a satellite is drawn as a bright dot when it is sunlit, the Sun is more than 6&deg; down and its predicted magnitude is 5.2 or brighter. Satellites with no known brightness are assumed to be magnitude 6.5, so they appear only when close. <em>Watch next pass</em> searches the next day and a half (then five days) for a visible pass and replays only the part at least 2&deg; above the actual mountain skyline, as long as that part lasts 40 seconds or more.</p>
+    </section>
+
+    <section id="bodies">
+      <h2>Sun, Moon and planets</h2>
+      <div class="chips"><span class="chip">Library <b>Astronomy Engine 2.1.19</b></span><span class="chip">Stated accuracy <b>&plusmn;1 arcminute</b></span></div>
+      <p>Positions of the Sun, Moon and planets come from Astronomy Engine, which is built on the VSOP87 planetary theory and NOVAS, the US Naval Observatory's software, and is tested to stay within one arcminute of NOVAS. That is about a thirtieth of the Moon's width.</p>
+      <ul>
+        <li>In space view, the Sun and Moon are placed at their true distance and drawn at true size. The Moon is lit from the real direction of the Sun, so its phase is correct.</li>
+        <li>In the ground views, positions are computed for your exact spot on Earth and converted to height above the horizon with standard atmospheric refraction, which lifts objects near the horizon by about half a degree.</li>
+        <li>Moonlight on the land scales with the Moon's lit fraction and its height in the sky.</li>
+        <li>Planets in the ground views are at their real positions, but each is drawn at a typical brightness (Venus &minus;4.2, Jupiter &minus;2.4, Mars 0.6, Saturn 0.7, Mercury 0.0) rather than its brightness tonight.</li>
+        <li>For satellite lighting, shadows and pass predictions, OverHead uses the simpler Sun formula built into satellite.js. Its error is far smaller than the uncertainty in the shadow model above.</li>
+      </ul>
+    </section>
+
+    <section id="earth">
+      <h2>The Earth</h2>
+      <div class="chips"><span class="chip">Source <b>NASA GIBS</b></span><span class="chip">Refresh <b>every 3 hours</b></span><span class="chip">Resolution <b>8192 &times; 4096</b></span></div>
+      <h3>Daytime and clouds</h3>
+      <p>Every 3 hours a scheduled task downloads true-color images from the VIIRS cameras on three weather satellites, NOAA-20, NOAA-21 and Suomi NPP, through NASA's Global Imagery Browse Services. Each pixel covers about 5 km at the equator. It builds a mosaic newest first: today's passes, then yesterday's, then the day before, stopping once 90% of the globe is filled. Gaps such as the polar night are blended into NASA's cloud-free <em>Blue Marble Next Generation</em> image with a soft edge. If less than half the globe has imagery, the previous clouds are kept.</p>
+      <p>These satellites photograph each place once a day in the early afternoon, local time. So the clouds you see are not live: each area shows its most recent daytime pass, and neighboring areas can be hours or a day apart. The <em>Clouds off</em> setting shows the cloud-free Blue Marble alone.</p>
+      <p>A rough cloud mask is estimated wherever the mosaic is brighter and greyer than the cloud-free image. It is used only to hide sun glint and dim city lights under clouds. It is not a weather product.</p>
+
+      <h3>Night, glint and air</h3>
+      <ul>
+        <li><strong>City lights</strong> come from NASA's Black Marble, made from VIIRS night images, and fade in across the line between day and night.</li>
+        <li><strong>Sun glint</strong>, the bright reflection of the Sun, appears only over water. The water mask is drawn from Natural Earth coastlines and lakes.</li>
+        <li><strong>The blue rim and the orange twilight band</strong> are artistic effects tuned by eye. They are not a physical model of sunlight scattering in air.</li>
+      </ul>
+    </section>
+
+    <section id="stars">
+      <h2>Stars and the Milky Way</h2>
+      <div class="chips"><span class="chip">Stars <b>5,044 to magnitude 6</b></span><span class="chip">Source <b>d3-celestial</b></span></div>
+      <p>The star field holds every star brighter than magnitude 6, the naked-eye limit under a dark sky: 5,044 stars from Olaf Frohn's d3-celestial, which draws on the Extended Hipparcos Compilation (Anderson and Francis, 2012). Constellation lines come from the same project.</p>
+      <ul>
+        <li><strong>Color</strong> comes from each star's B&minus;V color index, which measures how blue or red it is, mapped through a seven-step color table from blue-white to orange.</li>
+        <li><strong>Size and brightness</strong> scale with the light a star sends, 10<sup>&minus;0.4(m&minus;1)</sup>, with limits so the brightest stars don't swamp the view.</li>
+        <li><strong>Position</strong> starts from the year-2000 star catalog and is rotated for the slow wobble of Earth's axis (precession and nutation) to today. Each star's own slow drift across the sky since 2000 is ignored; for naked-eye stars that is at most a few arcminutes.</li>
+        <li>In the ground views, stars fade out as the Sun climbs from 14&deg; to 2&deg; below the horizon.</li>
+      </ul>
+      <h3>The Milky Way</h3>
+      <p>The Milky Way is not a photograph. It is computed from galactic coordinates, the frame aligned with our galaxy: a bright bulge toward Sagittarius, the star clouds of Cygnus, a thin disk that fades away from the galactic plane, the dark dust lane known as the Great Rift, and noise for a clumpy texture. It is kept faint, close to how it looks to the eye at a dark site, so its shapes are approximate.</p>
+      <p>OverHead does not model light pollution. Both ground views show a dark sky, which is realistic for Yosemite but brighter than the real sky above Saalbach, where village lights glow.</p>
+    </section>
+
+    <section id="models">
+      <h2>Spacecraft close-ups</h2>
+      <div class="chips"><span class="chip">Source <b>NASA 3D Resources</b></span><span class="chip">Plus <b>hand-built models</b></span></div>
+      <ul>
+        <li><strong>NASA models</strong>: the ISS, Hubble, the GOES-R weather satellites, Landsat 8 and Suomi NPP come from <a href="https://github.com/nasa/NASA-3D-Resources" target="_blank" rel="noopener">NASA's 3D Resources</a>. Landsat 9 uses the Landsat 8 model and NOAA-20 uses Suomi NPP's, since each pair is nearly identical.</li>
+        <li><strong>The ISS</strong> was simplified so it loads in seconds: tiny parts such as handrails and latches were removed, dense meshes were thinned, and textures were shrunk to 512 pixels. It is about 12.6 MB.</li>
+        <li><strong>Tiangong</strong> has no public official model, so it was built by hand from published layouts of its Tianhe, Wentian and Mengtian modules.</li>
+        <li><strong>Everything else</strong> gets a representative shape: Starlink, geostationary, navigation, cubesat, crew capsule, or a generic satellite sized by its mass.</li>
+      </ul>
+      <p>Real orientations are not published for most satellites, so each model is drawn with its top facing away from Earth and its front along its direction of travel, which is roughly how most Earth-watching satellites fly. Solar panels on the hand-built models turn to face the real Sun; NASA's models keep the pose they were made in. Models are lit by the real Sun and go dark in Earth's shadow, with a faint fill light so they stay visible, which the view points out.</p>
+    </section>
+
+    <section id="ground">
+      <h2>Look up: the ground views</h2>
+      <p>Look up puts you on the ground at a real place and shows the sky as you would see it, with real mountains blocking part of it.</p>
+
+      <h3>How both views are built</h3>
+      <ul>
+        <li><strong>Terrain rings.</strong> Elevation is stored as grids in rings that get coarser with distance, saved as images that hold heights to the nearest 10 cm. Each grid becomes a 3D surface with an aerial photo laid on top.</li>
+        <li><strong>Earth's curve.</strong> Distant ground is lowered by d&sup2; / 2R&prime;, where d is the distance and R&prime; is 7/6 of Earth's radius. The 7/6 factor is a common surveying allowance for light bending slightly in the lower atmosphere, which lets you see a little farther than pure geometry would.</li>
+        <li><strong>Sunlight and shadows.</strong> The land is lit from the real direction of the Sun. Shadows come from a 4,096 &times; 4,096 depth image of the nearby terrain rendered from the Sun's direction, refreshed every 1.5 seconds (every quarter second during replays) and softened at the edges.</li>
+        <li><strong>Haze.</strong> Distant land fades toward the sky color with distance, on a 34 km scale at Yosemite and a 60 km scale in the clearer Alpine air at Saalbach.</li>
+        <li><strong>Sky color.</strong> The daytime blue, twilight glow and night are a hand-tuned gradient driven by the Sun's height, not a physical model of the atmosphere.</li>
+        <li><strong>Skyline.</strong> The height of the mountain skyline is measured from the terrain every 1&deg; around you, and pass replays use it to skip the parts hidden behind ridges.</li>
+        <li><strong>Trees.</strong> Trees are placed where the aerial photos show forest, at typical heights drawn at random. They show the forest's extent and texture, not individual real trees.</li>
+      </ul>
+
+      <h3>Yosemite: Tunnel View</h3>
+      <div class="chips"><span class="chip">37.7156&deg;N 119.6770&deg;W</span><span class="chip">Ground <b>1,342 m</b></span><span class="chip">Data <b>public domain</b></span></div>
+      <ul>
+        <li><strong>Elevation:</strong> USGS 3D Elevation Program, 1/3 arc-second, resampled to a 20 &times; 20 km grid about 20 m apart around the overlook and a 160 &times; 160 km grid about 420 m apart beyond it, on the UTM map grid turned to true north.</li>
+        <li><strong>Photos:</strong> USDA NAIP aerial imagery from 2022, through The National Map. The photos were flown on different days, so colors were matched across the seams, and the shadows baked into them were lifted because OverHead adds its own live sunlight.</li>
+        <li><strong>Cliffs:</strong> an aerial photo barely sees a vertical wall, so slopes too steep for the photo use a CC0 granite texture (ambientCG Rock026).</li>
+        <li><strong>Trees:</strong> about 126,000 conifers within 4.2 km, spaced 7.5 m apart close in and 24 m farther out, about 27 m tall on average and a little shorter higher up. Trees on the slope right below the overlook are kept under your sightline, so randomly placed trees can't block the famous view.</li>
+        <li><strong>Drawn by hand:</strong> Bridalveil Fall and the overlook's stone wall, which a 20 m grid cannot capture.</li>
+      </ul>
+
+      <h3>Saalbach Hinterglemm: the Schattberg in winter</h3>
+      <div class="chips"><span class="chip">47.3627&deg;N 12.6274&deg;E</span><span class="chip">Ground <b>2,085 m</b></span><span class="chip">Season <b>always winter</b></span></div>
+      <ul>
+        <li><strong>Where:</strong> the south edge of the Schattberg's middle summit, about a kilometer from the top station of the Schattberg X-press gondola, looking south across the Salzach valley to the Hohe Tauern glaciers. The spot was chosen to match the area of photos Brendan took from the ski area, not an exact surveyed position.</li>
+        <li><strong>Elevation:</strong> Tilezen terrain tiles, which use Austria's national elevation model inside Austria and other open models, such as the European EU-DEM, beyond the border. They were resampled into three rings centered on you: 16 km across at about 18 m spacing, 64 km at about 71 m and 180 km at about 280 m, with isolated spikes smoothed out.</li>
+        <li><strong>Photos:</strong> summer aerial photos from basemap.at, turned to winter: snow on open ground with soft drift patterns, near-black spruce where the photos show forest, bare grey rock on slopes steeper than about 40&deg;, and water left as it is. The colors were tuned against Brendan's photos.</li>
+        <li><strong>Trees:</strong> about 85,000 spruce within 3.5 km, only where the photos show forest, on slopes under 40&deg; and below a treeline of about 1,880 to 1,940 m, about 24 m tall on average and shorter near the treeline.</li>
+        <li><strong>Not drawn:</strong> lifts, huts and the summit station.</li>
+      </ul>
+    </section>
+
+    <section id="intro">
+      <h2>The opening intro</h2>
+      <p>The word OverHead is set in Barlow Condensed on a hidden canvas. The edge pixels of each letter are traced and ordered into a drawing path by always moving to the nearest unvisited point, with long jumps treated as lifting the pen. Four illustrated satellites each burn two letters with a laser. The satellites in this part are drawings, not real spacecraft.</p>
+      <p>The globe then switches on category by category, and the counts come from the satellites actually loaded that moment. The intro can be skipped, can be replayed from the About panel, and is skipped automatically if your device asks for reduced motion.</p>
+    </section>
+
+    <section id="privacy">
+      <h2>Your location and privacy</h2>
+      <ul>
+        <li>You pick a location from a list of cities or type in coordinates. OverHead never asks your device for its location.</li>
+        <li>Your location, category filters and settings are saved only in your own browser's storage. There are no accounts, no analytics and no tracking.</li>
+        <li>Opening the page loads its own data files, three JavaScript libraries from the jsDelivr network and fonts from Google Fonts. Like any website, those services see your IP address when they deliver the files.</li>
+      </ul>
+    </section>
+
+    <section id="limits">
+      <h2>Accuracy and known limits</h2>
+      <p>OverHead is built for curiosity and for spotting satellites with your own eyes. It is not suitable for navigation, safety, collision avoidance or any purpose where an error matters.</p>
+      <ul>
+        <li><strong>Positions:</strong> public element sets with SGP4 are typically good to about 1 to 3 km near their epoch, and the error grows as they age (Vallado and others, 2006). Satellites that fire their engines, such as Starlinks raising their orbits after launch, can be farther off until new elements arrive. For a low satellite moving at about 7.5 km/s, a 1 to 3 km error along its path shifts pass times by less than half a second.</li>
+        <li><strong>Brightness:</strong> good to roughly a magnitude; flashes, tumbling and the atmosphere are not modeled, and some values are rules of thumb.</li>
+        <li><strong>Shadow:</strong> a sharp cylindrical shadow, so fade-in and fade-out times can be off by a few seconds.</li>
+        <li><strong>Coverage:</strong> satellites without public orbits, including some classified ones, are not shown. Debris and spent rocket stages are left out on purpose.</li>
+        <li><strong>Clouds:</strong> up to a day or more old in places, never live.</li>
+        <li><strong>Sky:</strong> no light pollution, no weather and no atmospheric dimming near the horizon. Planets use typical brightness.</li>
+        <li><strong>Terrain:</strong> the grids are 18 to 20 m apart near you, so cliffs, buildings and single trees are approximations; trees, snow and the Saalbach winter are modeled from photos, not measured.</li>
+        <li><strong>Catalog:</strong> owner and launch details are a snapshot and may lag new launches.</li>
+      </ul>
+    </section>
+
+    <section id="sources">
+      <h2>Sources and licenses</h2>
+      <p>Every outside source used to build or run OverHead, with its terms as stated by the provider. Where a provider states no license, the table says so.</p>
+      <div class="tbl">
+        <table>
+          <thead><tr><th>Source</th><th>Used for</th><th>Terms</th><th>Credit</th></tr></thead>
+          <tbody>
+            <tr><td>US Space Force element sets, published by <a href="https://celestrak.org" target="_blank" rel="noopener">CelesTrak</a></td><td>Orbits</td><td><span class="lic none">None stated</span></td><td>Orbital data: US Space Force via CelesTrak</td></tr>
+            <tr><td><a href="https://github.com/satvisorcom/satvisor-data" target="_blank" rel="noopener">satvisor-data</a></td><td>Mirror of CelesTrak groups; standard magnitudes</td><td><span class="lic none">None stated</span></td><td>satvisor-data</td></tr>
+            <tr><td><a href="https://github.com/dylanfain/LEOrbit" target="_blank" rel="noopener">LEOrbit</a></td><td>Second copy of Starlink orbits</td><td><span class="lic none">None stated</span></td><td>LEOrbit</td></tr>
+            <tr><td><a href="https://db.satnogs.org/about" target="_blank" rel="noopener">SatNOGS DB</a>, Libre Space Foundation</td><td>Orbit refreshes</td><td><span class="lic open">CC BY-SA 4.0</span></td><td>SatNOGS DB, Libre Space Foundation</td></tr>
+            <tr><td>Mike McCants' visual magnitudes, via satvisor-data</td><td>Brightness</td><td><span class="lic none">None stated</span></td><td>Mike McCants</td></tr>
+            <tr><td><a href="https://planet4589.org/space/gcat/" target="_blank" rel="noopener">GCAT</a>, Jonathan McDowell</td><td>Owners, launches, categories</td><td><span class="lic open">CC BY 4.0</span></td><td>Data from GCAT (J. McDowell, planet4589.org/space/gcat)</td></tr>
+            <tr><td><a href="https://www.earthdata.nasa.gov/gibs" target="_blank" rel="noopener">NASA GIBS</a>: VIIRS true color (NOAA-20, NOAA-21, Suomi NPP), Blue Marble Next Generation, Black Marble</td><td>Earth by day and night, clouds</td><td><span class="lic open">NASA, no copyright</span></td><td>We acknowledge the use of imagery provided by services from NASA's Global Imagery Browse Services (GIBS), part of NASA's Earth Science Data and Information System (ESDIS).</td></tr>
+            <tr><td><a href="https://svs.gsfc.nasa.gov/4720/" target="_blank" rel="noopener">CGI Moon Kit</a>, from Lunar Reconnaissance Orbiter camera data</td><td>Moon surface</td><td><span class="lic open">NASA, no copyright</span></td><td>NASA's Scientific Visualization Studio</td></tr>
+            <tr><td><a href="https://www.naturalearthdata.com/" target="_blank" rel="noopener">Natural Earth</a> land and lakes</td><td>Water mask for sun glint</td><td><span class="lic open">Public domain</span></td><td>Made with Natural Earth</td></tr>
+            <tr><td><a href="https://github.com/ofrohn/d3-celestial" target="_blank" rel="noopener">d3-celestial</a>, Olaf Frohn, from XHIP (Anderson &amp; Francis 2012) and IAU constellation data</td><td>Stars, constellation lines and names</td><td><span class="lic open">BSD 3-Clause</span></td><td>&copy; 2015 Olaf Frohn</td></tr>
+            <tr><td><a href="https://github.com/nasa/NASA-3D-Resources" target="_blank" rel="noopener">NASA 3D Resources</a></td><td>ISS, Hubble, GOES-R, Landsat 8, Suomi NPP models</td><td><span class="lic open">NASA, no copyright</span></td><td>NASA</td></tr>
+            <tr><td><a href="https://www.usgs.gov/3d-elevation-program" target="_blank" rel="noopener">USGS 3D Elevation Program</a></td><td>Yosemite terrain</td><td><span class="lic open">Public domain</span></td><td>3DEP data courtesy of the U.S. Geological Survey</td></tr>
+            <tr><td><a href="https://naip-usdaonline.hub.arcgis.com/" target="_blank" rel="noopener">USDA NAIP</a> 2022, via <a href="https://apps.nationalmap.gov/" target="_blank" rel="noopener">The National Map</a></td><td>Yosemite aerial photos</td><td><span class="lic open">Public domain</span></td><td>USDA National Agriculture Imagery Program</td></tr>
+            <tr><td><a href="https://ambientcg.com/view?id=Rock026" target="_blank" rel="noopener">ambientCG Rock026</a></td><td>Granite on Yosemite's cliffs</td><td><span class="lic open">CC0</span></td><td>ambientCG.com</td></tr>
+            <tr><td><a href="https://registry.opendata.aws/terrain-tiles/" target="_blank" rel="noopener">Tilezen terrain tiles</a> on AWS Open Data</td><td>Saalbach terrain</td><td><span class="lic open">Per source, below</span></td><td>Austria terrain data &copy; offene Daten &Ouml;sterreichs, Digitales Gel&auml;ndemodell (DGM) &Ouml;sterreich (CC BY 3.0 AT); Europe terrain data produced using Copernicus data and information funded by the European Union, EU-DEM layers; SRTM and GMTED2010 terrain data courtesy of the U.S. Geological Survey</td></tr>
+            <tr><td><a href="https://basemap.at" target="_blank" rel="noopener">basemap.at</a> orthophotos</td><td>Saalbach aerial photos</td><td><span class="lic open">CC BY 4.0</span></td><td>Datenquelle: basemap.at</td></tr>
+            <tr><td>Brendan Urganus's own photos</td><td>Tuning the Saalbach winter colors</td><td>Not published</td><td>Brendan Urganus</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout">
+        <p><strong>ShareAlike.</strong> Some orbital elements in OverHead's satellite data file come from SatNOGS DB, which is shared under CC BY-SA 4.0. To honor that, OverHead's satellite data file (data/sats.json) is offered under the same license, with the credits above.</p>
+        <p><strong>Replaced sources.</strong> Until October 22, 2026, the Moon texture and the water mask came from the three.js example files. Their original source could not be confirmed, so they were replaced with NASA's CGI Moon Kit and a mask drawn from Natural Earth.</p>
+      </div>
+    </section>
+
+    <section id="software">
+      <h2>Software and tools</h2>
+      <h3>Running in your browser</h3>
+      <div class="tbl">
+        <table>
+          <thead><tr><th>Library</th><th>Used for</th><th>License</th></tr></thead>
+          <tbody>
+            <tr><td>three.js 0.170.0</td><td>3D drawing, model loading, camera controls</td><td><span class="lic open">MIT</span></td></tr>
+            <tr><td>satellite.js 6.0.1</td><td>SGP4 orbits, look angles, the Sun for lighting</td><td><span class="lic open">MIT</span></td></tr>
+            <tr><td>Astronomy Engine 2.1.19</td><td>Sun, Moon and planet positions, sky rotation</td><td><span class="lic open">MIT</span></td></tr>
+            <tr><td>Barlow Condensed (Jeremy Tribby); IBM Plex Sans and Mono (IBM)</td><td>Typefaces, via Google Fonts</td><td><span class="lic open">SIL OFL 1.1</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>The libraries are loaded from the jsDelivr network at pinned versions. Everything else, including the shaders for Earth, the sky, the Milky Way and the terrain, was written for OverHead.</p>
+      <h3>Used to prepare the data</h3>
+      <ul>
+        <li>Python with NumPy, SciPy, Pillow and pyproj, for the cloud mosaic, terrain grids, photo color work, tree placement and the orbit and catalog merge. The two refresh scripts that run on a schedule are published with the site in its tools folder.</li>
+        <li>glTF-Transform and meshoptimizer, for simplifying the NASA models.</li>
+        <li>Playwright with headless Chromium, for testing the page at desktop and phone sizes.</li>
+        <li>Claude, Anthropic's AI model, wrote the code and text under Brendan's direction.</li>
+      </ul>
+    </section>
+
+    <section id="notices">
+      <h2>Credits and notices</h2>
+      <p>OverHead is an independent project by Brendan Urganus, built with Claude. It is not affiliated with, sponsored by or endorsed by NASA, the U.S. Geological Survey, the U.S. Department of Agriculture, the U.S. Space Force, CelesTrak, the Libre Space Foundation, basemap.at, Anthropic or any satellite operator. Use of NASA imagery and models does not imply endorsement by NASA.</p>
+      <p>Satellite, mission and company names are trademarks of their owners and are used only to identify them.</p>
+    </section>
+
+    <div class="foot">
+      <p>Questions or corrections about a source? The project's code and data live at <a href="https://github.com/brendanurganus/overhead" target="_blank" rel="noopener">github.com/brendanurganus/overhead</a>.</p>
+    </div>
+  </main>
+</div>
+<script>
+  // open the contents list on wide screens, keep it folded on phones
+  (function () {
+    var d = document.getElementById('tocDetails');
+    var mq = window.matchMedia('(min-width: 980px)');
+    function sync() { if (mq.matches) d.open = true; }
+    sync();
+    if (mq.addEventListener) mq.addEventListener('change', sync);
+    d.querySelectorAll('a').forEach(function (a) { a.addEventListener('click', function () { if (!mq.matches) d.open = false; }); });
+    // return to the open globe instead of reloading it, when we came from there
+    var back = document.getElementById('backLink');
+    back.addEventListener('click', function (e) {
+      try {
+        if (history.length > 1 && document.referrer && new URL(document.referrer).origin === location.origin) { e.preventDefault(); history.back(); }
+      } catch (err) { /* fall through to the link */ }
+    });
+  })();
+</script>
+</body>
+</html>
